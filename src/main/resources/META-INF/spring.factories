@@ -1,0 +1,5 @@
+# Auto Configuration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+top.banner.cms.log.config.SysLogConfiguration,\
+top.banner.cms.log.syslog.SysLogAspect,\
+top.banner.cms.log.core.impl.DefaultLogProcessService
