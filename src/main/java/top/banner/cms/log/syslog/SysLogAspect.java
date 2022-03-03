@@ -2,6 +2,7 @@ package top.banner.cms.log.syslog;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -11,6 +12,7 @@ import top.banner.cms.log.core.SysLogProperties;
 import top.banner.cms.log.utils.IPHelper;
 
 import javax.annotation.Resource;
+import java.util.Map;
 
 /**
  * @author xgl
@@ -36,7 +38,13 @@ public class SysLogAspect {
         String desc = log.desc();
 
         //请求的方法名
-        String className = joinPoint.getTarget().getClass().getName().replace("com.ican.controller.", "");
+        String className;
+        if (sysLogProperties.getIgnorePackage()) {
+            className = joinPoint.getTarget().getClass().getSimpleName();
+        } else {
+            className = joinPoint.getTarget().getClass().getName();
+        }
+
         String methodName = joinPoint.getSignature().getName();
 
         //请求的参数
@@ -45,7 +53,9 @@ public class SysLogAspect {
         String params = null;
 
         try {
-            params = objectMapper.writeValueAsString(args).replaceAll("password[^,]*", "password\":\"******\"");
+
+            params = desensitization(objectMapper.writeValueAsString(args));
+
             if (params.length() > 2000) {
                 params = params.substring(0, 2000) + "...";
             }
@@ -74,5 +84,26 @@ public class SysLogAspect {
 
         return result;
     }
+
+    /**
+     * 请求参数脱敏
+     *
+     * @param params json
+     */
+    private String desensitization(String params) {
+        if (StringUtils.isBlank(params)) {
+            return params;
+        }
+
+        Map<String, String> desensitizationRules = logProcessService.getDesensitizationRules();
+        for (Map.Entry<String, String> entry : desensitizationRules.entrySet()) {
+            String k = entry.getKey();
+            String v = entry.getValue();
+            //params = params.replaceAll("password[^,]*", "password\":\"******\"");
+            params = params.replaceAll(k, v);
+        }
+        return params;
+    }
+
 
 }
